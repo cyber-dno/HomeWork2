@@ -1,0 +1,18 @@
+package Entity;
+
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+@Data
+public class BankAccount {
+    private String id;
+    private BigDecimal balance;
+    private List<Transaction> transactions;
+
+    public BankAccount(String id, List<Transaction> transactions) {
+        this.id = id;
+        this.transactions = transactions;
+    }
+}

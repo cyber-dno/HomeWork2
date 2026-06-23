@@ -3,6 +3,7 @@ import Entity.Transaction;
 import Entity.User;
 import Service.BankService;
 import Enum.TransactionType;
+import Service.TransactionService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -235,7 +236,28 @@ public class BankServiceTest {
     // Проверяем работоспособность метода
     @Test
     public void getLargestTransactions() {
-        PriorityQueue<Transaction> result = BankService.getTopNLargestTransactions(user, 2);
-        Assertions.assertEquals(FIVE_DOLLARS, result.poll().getValue());
+        PriorityQueue<Transaction> result = BankService.getTopNLargestTransactions(user, 3);
+        Assertions.assertEquals(TEN_DOLLARS, result.poll().getValue());
+    }
+
+    // Замеряем время выполнения обычных и параллельных стримов
+    @Test
+    public void analyzePerformance() {
+        long startTime = System.currentTimeMillis();
+        TransactionService.getTransactionsByUser(user)
+                .filter(transaction -> transaction.getValue().compareTo(TWO_DOLLARS) > 0)
+                .sorted(Comparator.comparing(Transaction::getValue).reversed())
+                .count();
+        long endTime = System.currentTimeMillis();
+        System.out.println("Sequential time: " + (endTime - startTime) + "ms");
+
+        startTime = System.currentTimeMillis();
+        TransactionService.getTransactionsByUser(user)
+                .parallel()
+                .filter(transaction -> transaction.getValue().compareTo(TWO_DOLLARS) > 0)
+                .sorted(Comparator.comparing(Transaction::getValue).reversed())
+                .count();
+        endTime = System.currentTimeMillis();
+        System.out.println("Parallel time: " + (endTime - startTime) + "ms");
     }
 }

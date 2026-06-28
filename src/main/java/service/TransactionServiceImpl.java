@@ -1,10 +1,10 @@
-package Service;
+package service;
 
-import Entity.BankAccount;
-import Entity.Transaction;
-import Entity.User;
-import Enum.TransactionType;
-import lombok.Getter;
+import classifier.TransactionType;
+import entity.BankAccount;
+import entity.Transaction;
+import entity.User;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,9 +12,8 @@ import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Service
 public class TransactionServiceImpl implements TransactionService {
-    @Getter
-    private static final TransactionServiceImpl INSTANCE = new TransactionServiceImpl();
 
     // Получение транзакций по счёту. Если счёта нет, то возвращается пустой список
     public Stream<Transaction> getTransactionsByAccount(BankAccount account) {

@@ -2,39 +2,45 @@ package service;
 
 import dto.UserRequest;
 import entity.BankAccount;
-import service.notification.ExternalNotificationService;
+import entity.Refund;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class BankManager {
-    private BankAccountService serv = new BankAccountService(null, null); // неправильная инициализация
-    private PaymentGatewayService payService = new PaymentGatewayService();
-    private ExternalNotificationService notifier = new ExternalNotificationService();
+    private final BankAccountService serv;
+    private final RefundService refundService;
+
+    public BankManager(BankAccountService bankAccountService,
+                       RefundService refundService) {
+        this.serv = bankAccountService;
+        this.refundService = refundService;
+    }
 
     public void doWork(List<UserRequest> rqs) {
+        serv.createTestAccount();
         for (UserRequest r : rqs) {
             BankAccount a = serv.findAccountById(r.getAccountId());
             if (a == null) {
                 System.out.println("no acc " + r.getAccountId());
+                refundService.createRefund(new Refund());
                 continue;
             }
-            if (r.getPaymentType().equals("CARD")) {
-                payService.authorize("tx", r.getAmount());
-                serv.withdraw(a, r.getAmount());
-                System.out.println("card pay " + a.getId());
-                notifier.sendSms(a.getOwner().getPhoneNumber(), "paid " + r.getAmount());
-                notifier.sendEmail(a.getOwner().getEmail(), "payment", "card pay " + r.getAmount());
-            } else if (r.getPaymentType().equals("BANK")) {
-                payService.authorize("tx", r.getAmount());
-                System.out.println("bank pay " + a.getId());
-                notifier.sendSms(a.getOwner().getPhoneNumber(), "payment bank " + r.getAmount());
-                notifier.sendEmail(a.getOwner().getEmail(), "payment bank", "payment bank " + r.getAmount());
-            } else if (r.getPaymentType().equals("WALLET")) {
-                payService.authorize("tx", r.getAmount());
-                serv.withdraw(a, r.getAmount());
-                System.out.println("wallet pay " + a.getId());
-                notifier.sendSms(a.getOwner().getPhoneNumber(), "wallet " + r.getAmount());
-                notifier.sendEmail(a.getOwner().getEmail(), "wallet", "wallet " + r.getAmount());
+            switch (r.getPaymentType()) {
+                case "CARD" -> {
+                    serv.processCardPayment(a, r.getAmount());
+                    System.out.println("\n");
+                }
+                case "BANK" -> {
+                    serv.processBankTransfer(a, r.getAmount());
+                    System.out.println("\n");
+                }
+                case "WALLET" -> {
+                    serv.processWalletPayment(a, r.getAmount());
+                    System.out.println("\n");
+                }
             }
         }
     }

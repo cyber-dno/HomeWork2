@@ -1,10 +1,13 @@
 package service;
 
 import entity.Refund;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Сервис осуществляющий возвраты по платежам
  */
+@Service
 public class RefundService {
     private final PaymentGatewayService paymentGatewayService;
 

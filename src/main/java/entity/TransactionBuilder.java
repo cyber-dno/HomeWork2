@@ -1,6 +1,6 @@
-package Entity;
+package entity;
 
-import Enum.TransactionType;
+import classifier.TransactionType;
 import lombok.Getter;
 
 import java.math.BigDecimal;

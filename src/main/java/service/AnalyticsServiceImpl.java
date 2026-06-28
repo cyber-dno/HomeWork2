@@ -1,21 +1,39 @@
-package Service;
+package service;
 
-import Annotation.LogExecutionTime;
-import Entity.BankAccount;
-import Entity.Transaction;
-import Entity.User;
-import Enum.TransactionType;
-import lombok.Getter;
+import annotation.LogExecutionTime;
+import entity.BankAccount;
+import entity.Transaction;
+import entity.User;
+import classifier.TransactionType;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.extern.java.Log;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class BankServiceImpl implements BankService {
-    @Getter
-    private static final BankServiceImpl INSTANCE = new BankServiceImpl();
-    private final TransactionServiceImpl transactionService = TransactionServiceImpl.getINSTANCE();
+@Service
+@Log
+public class AnalyticsServiceImpl implements AnalyticsService {
+    private final TransactionServiceImpl transactionService;
+
+    public AnalyticsServiceImpl(TransactionServiceImpl transactionService) {
+        this.transactionService = transactionService;
+    }
+
+    @PostConstruct
+    public void initBean() {
+        log.info("AnalyticsServiceImpl initialized");
+    }
+
+    @PreDestroy
+    public void destroyBean() {
+        log.info("AnalyticsServiceImpl destroyed");
+    }
 
     // Получение месячных затрат по указанной категории
     @LogExecutionTime

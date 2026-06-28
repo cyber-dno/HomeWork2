@@ -1,19 +1,35 @@
+import annotation.LogExecutionTimeProcessor;
+import classifier.TransactionType;
 import entity.BankAccount;
 import entity.Transaction;
 import entity.User;
-import service.AnalyticsService;
-import classifier.TransactionType;
-import service.TransactionService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import service.AnalyticsService;
+import service.AnalyticsServiceImpl;
+import service.TransactionServiceImpl;
 
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Stream;
 
 public class AnalyticsServiceTest {
+    private final AnalyticsService proxyService;
+
+    public AnalyticsServiceTest() {
+        TransactionServiceImpl transactionService = new TransactionServiceImpl();
+
+        AnalyticsServiceImpl bankService = new AnalyticsServiceImpl(transactionService);
+        this.proxyService = (AnalyticsService) Proxy.newProxyInstance(
+                bankService.getClass().getClassLoader(),
+                bankService.getClass().getInterfaces(),
+                new LogExecutionTimeProcessor(bankService)
+        );
+    }
+
     private static final User user = new User();
     private static final User user2 = new User();
     private static final User user3 = new User();
@@ -81,28 +97,28 @@ public class AnalyticsServiceTest {
     // Подаём на вход счёт только с депозитами
     @Test
     public void getMonthlySpendingByCategoryOnlyDeposit() {
-        BigDecimal result = AnalyticsService.getMonthlySpendingByCategory(bankAccount2, EDUCATION_CATEGORY);
+        BigDecimal result = proxyService.getMonthlySpendingByCategory(bankAccount2, EDUCATION_CATEGORY);
         Assertions.assertEquals(BigDecimal.ZERO, result);
     }
 
     // Подаём на вход пустой счёт
     @Test
     public void getMonthlySpendingByCategoryByEmptyAccount() {
-        BigDecimal result = AnalyticsService.getMonthlySpendingByCategory(null, EDUCATION_CATEGORY);
+        BigDecimal result = proxyService.getMonthlySpendingByCategory(null, EDUCATION_CATEGORY);
         Assertions.assertEquals(BigDecimal.ZERO, result);
     }
 
     // Подаём на вход несуществующую категорию
     @Test
     public void getMonthlySpendingByWrongCategory() {
-        BigDecimal result = AnalyticsService.getMonthlySpendingByCategory(bankAccount1, "TestCategory");
+        BigDecimal result = proxyService.getMonthlySpendingByCategory(bankAccount1, "TestCategory");
         Assertions.assertEquals(BigDecimal.ZERO, result);
     }
 
     // Проверяем работоспособность метода
     @Test
     public void getMonthlySpendingByCategory() {
-        BigDecimal result = AnalyticsService.getMonthlySpendingByCategory(bankAccount1, EDUCATION_CATEGORY);
+        BigDecimal result = proxyService.getMonthlySpendingByCategory(bankAccount1, EDUCATION_CATEGORY);
         Assertions.assertEquals(SEVEN_DOLLARS, result);
     }
 
@@ -116,28 +132,28 @@ public class AnalyticsServiceTest {
     // Подаём на вход категории только с депозитами
     @Test
     public void getMonthlySpendingByCategoriesOnlyDeposit() {
-        Map<String, BigDecimal> result = AnalyticsService.getMonthlySpendingByCategories(user, Set.of(BEAUTY_CATEGORY, HEALTH_CATEGORY));
+        Map<String, BigDecimal> result = proxyService.getMonthlySpendingByCategories(user, Set.of(BEAUTY_CATEGORY, HEALTH_CATEGORY));
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Подаём на вход пустого пользователя
     @Test
     public void getMonthlySpendingByCategoriesByEmptyUser() {
-        Map<String, BigDecimal> result = AnalyticsService.getMonthlySpendingByCategories(null, Set.of(BEAUTY_CATEGORY, HEALTH_CATEGORY));
+        Map<String, BigDecimal> result = proxyService.getMonthlySpendingByCategories(null, Set.of(BEAUTY_CATEGORY, HEALTH_CATEGORY));
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Подаём на вход несуществующую категорию
     @Test
     public void getMonthlySpendingByWrongCategories() {
-        Map<String, BigDecimal> result = AnalyticsService.getMonthlySpendingByCategories(user, Set.of("TestCategory"));
+        Map<String, BigDecimal> result = proxyService.getMonthlySpendingByCategories(user, Set.of("TestCategory"));
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Проверяем работоспособность метода
     @Test
     public void getMonthlySpendingByCategories() {
-        Map<String, BigDecimal> result = AnalyticsService.getMonthlySpendingByCategories(user, Set.of(HEALTH_CATEGORY, EDUCATION_CATEGORY));
+        Map<String, BigDecimal> result = proxyService.getMonthlySpendingByCategories(user, Set.of(HEALTH_CATEGORY, EDUCATION_CATEGORY));
         Assertions.assertTrue(result.containsKey(EDUCATION_CATEGORY));
         Assertions.assertFalse(result.containsKey(HEALTH_CATEGORY));
         Assertions.assertEquals(SEVEN_DOLLARS, result.get(EDUCATION_CATEGORY));
@@ -154,21 +170,21 @@ public class AnalyticsServiceTest {
     // Подаём на вход пользователя только с депозитами
     @Test
     public void getTransactionHistoryOnlyDeposit() {
-        LinkedHashMap<String, List<Transaction>> result = AnalyticsService.getTransactionHistorySortedByAmount(user2);
+        LinkedHashMap<String, List<Transaction>> result = proxyService.getTransactionHistorySortedByAmount(user2);
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Подаём на вход пустого пользователя
     @Test
     public void getTransactionHistoryByEmptyUser() {
-        LinkedHashMap<String, List<Transaction>> result = AnalyticsService.getTransactionHistorySortedByAmount(null);
+        LinkedHashMap<String, List<Transaction>> result = proxyService.getTransactionHistorySortedByAmount(null);
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Проверяем работоспособность метода
     @Test
     public void getTransactionHistory() {
-        LinkedHashMap<String, List<Transaction>> result = AnalyticsService.getTransactionHistorySortedByAmount(user);
+        LinkedHashMap<String, List<Transaction>> result = proxyService.getTransactionHistorySortedByAmount(user);
         Assertions.assertTrue(result.containsKey(EDUCATION_CATEGORY));
         Assertions.assertFalse(result.containsKey(HEALTH_CATEGORY));
         Assertions.assertEquals(TEN_DOLLARS, result.get(EDUCATION_CATEGORY).get(0).getValue());
@@ -185,21 +201,21 @@ public class AnalyticsServiceTest {
     // Подаём на вход пользователя без транзакций
     @Test
     public void getLastTransactionsByUserWithoutTransactions() {
-        List<Transaction> result = AnalyticsService.getLastNTransactions(user4, 5);
+        List<Transaction> result = proxyService.getLastNTransactions(user4, 5);
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Подаём на вход пустого пользователя
     @Test
     public void getLastTransactionsByEmptyUser() {
-        List<Transaction> result = AnalyticsService.getLastNTransactions(null, 5);
+        List<Transaction> result = proxyService.getLastNTransactions(null, 5);
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Проверяем работоспособность метода
     @Test
     public void getLastTransactions() {
-        List<Transaction> result = AnalyticsService.getLastNTransactions(user3, 3);
+        List<Transaction> result = proxyService.getLastNTransactions(user3, 3);
         Assertions.assertEquals(ONE_WEEK_AGO, result.get(0).getCreatedDate());
         Assertions.assertEquals(ONE_MONTH_AGO, result.get(2).getCreatedDate());
     }
@@ -215,49 +231,28 @@ public class AnalyticsServiceTest {
     // Подаём на вход пользователя без транзакций
     @Test
     public void getLargestTransactionsByUserWithoutTransactions() {
-        PriorityQueue<Transaction> result = AnalyticsService.getTopNLargestTransactions(user4, 5);
+        PriorityQueue<Transaction> result = proxyService.getTopNLargestTransactions(user4, 5);
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Подаём на вход пользователя только с депозитами
     @Test
     public void getLargestTransactionsByUserWithoutPayment() {
-        PriorityQueue<Transaction> result = AnalyticsService.getTopNLargestTransactions(user2, 5);
+        PriorityQueue<Transaction> result = proxyService.getTopNLargestTransactions(user2, 5);
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Подаём на вход пустого пользователя
     @Test
     public void getLargestTransactionsByEmptyUser() {
-        PriorityQueue<Transaction> result = AnalyticsService.getTopNLargestTransactions(null, 5);
+        PriorityQueue<Transaction> result = proxyService.getTopNLargestTransactions(null, 5);
         Assertions.assertTrue(result.isEmpty());
     }
 
     // Проверяем работоспособность метода
     @Test
     public void getLargestTransactions() {
-        PriorityQueue<Transaction> result = AnalyticsService.getTopNLargestTransactions(user, 3);
+        PriorityQueue<Transaction> result = proxyService.getTopNLargestTransactions(user, 3);
         Assertions.assertEquals(TEN_DOLLARS, result.poll().getValue());
-    }
-
-    // Замеряем время выполнения обычных и параллельных стримов
-    @Test
-    public void analyzePerformance() {
-        long startTime = System.currentTimeMillis();
-        TransactionService.getTransactionsByUser(user)
-                .filter(transaction -> transaction.getValue().compareTo(TWO_DOLLARS) > 0)
-                .sorted(Comparator.comparing(Transaction::getValue).reversed())
-                .count();
-        long endTime = System.currentTimeMillis();
-        System.out.println("Sequential time: " + (endTime - startTime) + "ms");
-
-        startTime = System.currentTimeMillis();
-        TransactionService.getTransactionsByUser(user)
-                .parallel()
-                .filter(transaction -> transaction.getValue().compareTo(TWO_DOLLARS) > 0)
-                .sorted(Comparator.comparing(Transaction::getValue).reversed())
-                .count();
-        endTime = System.currentTimeMillis();
-        System.out.println("Parallel time: " + (endTime - startTime) + "ms");
     }
 }

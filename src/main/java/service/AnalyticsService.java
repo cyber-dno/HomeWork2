@@ -1,16 +1,16 @@
-package Service;
+package service;
 
-import Entity.BankAccount;
-import Entity.Transaction;
-import Entity.User;
-import Enum.TransactionType;
+import entity.BankAccount;
+import entity.Transaction;
+import entity.User;
+import classifier.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class BankService {
+public class AnalyticsService {
     // Получение месячных затрат по указанной категории
     public static BigDecimal getMonthlySpendingByCategory(BankAccount bankAccount, String category) {
         BigDecimal spendsByCategory = BigDecimal.ZERO;

@@ -1,8 +1,8 @@
-import Entity.BankAccount;
-import Entity.Transaction;
-import Entity.User;
-import Enum.TransactionType;
-import Service.TransactionService;
+import entity.BankAccount;
+import entity.Transaction;
+import entity.User;
+import classifier.TransactionType;
+import service.TransactionService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

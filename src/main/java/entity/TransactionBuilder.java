@@ -10,52 +10,44 @@ import java.time.LocalDateTime;
 public class TransactionBuilder {
     private Transaction transaction;
 
-    public void reset() {
+    public TransactionBuilder  reset() {
         transaction = new Transaction();
+        return this;
     }
 
-    public void setId(String id) {
+    public TransactionBuilder  setId(String id) {
         transaction.setId(id);
+        return this;
     }
 
-    public void setValue(BigDecimal value) {
-        transaction.setValue(value);
+    public TransactionBuilder  setAmount(BigDecimal value) {
+        transaction.setAmount(value);
+        return this;
     }
 
-    public void setType(TransactionType type) {
+    public TransactionBuilder  setType(TransactionType type) {
         transaction.setType(type);
+        return this;
     }
 
-    public void setCategory(String category) {
-        transaction.setCategory(category);
+    public TransactionBuilder  setDate(LocalDateTime createdDate) {
+        transaction.setDate(createdDate);
+        return this;
     }
 
-    public void setBankAccount(BankAccount bankAccount) {
-        transaction.setBankAccount(bankAccount);
+    public TransactionBuilder  setUser(User user) {
+        transaction.setUser(user);
+        return this;
     }
 
-    public void setCreatedDate(LocalDateTime createdDate) {
-        transaction.setCreatedDate(createdDate);
+    public TransactionBuilder  setSource(User source) {
+        transaction.setSource(source);
+        return this;
     }
 
-    public void setMerchantName(String merchantName) {
-        transaction.setMerchantName(merchantName);
-    }
-
-    public void setMerchantCategoryCode(String merchantCategoryCode) {
-        transaction.setMerchantCategoryCode(merchantCategoryCode);
-    }
-
-    public void setCardNumber(String cardNumber) {
-        transaction.setCardNumber(cardNumber);
-    }
-
-    public void setBankName(String bankName) {
-        transaction.setBankName(bankName);
-    }
-
-    public void setDigitalWalletId(String digitalWalletId) {
-        transaction.setDigitalWalletId(digitalWalletId);
+    public TransactionBuilder  setTarget(User target) {
+        transaction.setTarget(target);
+        return this;
     }
 
 }

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import service.BankAccountService;
+import service.db.BankAccountService;
 
 @Validated
 @RestController
@@ -27,8 +27,8 @@ public class TransactionController {
             return ResponseEntity.badRequest().body("Invalid transfer request");
         }
         bankAccountService.transfer(
-                request.getFromAccountId(),
-                request.getToAccountId(),
+                request.getFromAccountNumber(),
+                request.getToAccountNumber(),
                 request.getAmount()
         );
         return ResponseEntity.ok("Successfully transferred");

@@ -16,7 +16,7 @@ public class CreateAccountRequest {
     @Pattern(regexp = "\\+[0-9]{10,15}", message = "Некорректный формат номера")
     private String ownerPhone;
 
-    @DecimalMin(value = "0.0", message = "Начальный баланс должен быть больше или равен {value}")
+    @DecimalMin(value = "0.0", message = "Начальный баланс должен быть больше или равен {amount}")
     @NotNull(message = "Начальный баланс не должен быть пустым")
     private BigDecimal initialBalance;
 }

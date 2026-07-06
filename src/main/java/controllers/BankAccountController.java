@@ -5,16 +5,14 @@ import dto.DepositWithdrawRequest;
 import dto.ErrorResponse;
 import entity.BankAccount;
 import entity.Transaction;
-import entity.User;
 import jakarta.validation.Valid;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import service.BankAccountService;
+import service.db.BankAccountService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,52 +44,41 @@ public class BankAccountController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = new BankAccount(
-                "1",
-                createAccountRequest.getInitialBalance(),
-                new User(
-                        "1",
-                        createAccountRequest.getOwnerName(),
-                        createAccountRequest.getOwnerEmail(),
-                        createAccountRequest.getOwnerPhone()
-                ),
-                new ArrayList<>()
-        );
+        BankAccount account = bankAccountService.addBankAccount(createAccountRequest);
         return ResponseEntity.ok(account);
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<?> getAccount(@PathVariable("id") Integer id) {
-        BankAccount account = bankAccountService.findAccountById(id);
+    public ResponseEntity<?> getAccount(@PathVariable("id") String number) {
+        BankAccount account = bankAccountService.findAccountByNumber(number);
         return ResponseEntity.ok(account);
     }
 
     @PostMapping("{id}/deposit")
-    public ResponseEntity<?> depositAccount(@PathVariable("id") Integer id,
+    public ResponseEntity<?> depositAccount(@PathVariable("id") String number,
                                                @Valid @RequestBody DepositWithdrawRequest depositWithdrawRequest,
                                                BindingResult result) {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = bankAccountService.deposit(id, depositWithdrawRequest.getAmount());
+        BankAccount account = bankAccountService.deposit(number, depositWithdrawRequest.getAmount());
         return ResponseEntity.ok(account);
     }
 
     @PostMapping("{id}/withdraw")
-    public ResponseEntity<?> withdrawAccount(@PathVariable("id") Integer id,
+    public ResponseEntity<?> withdrawAccount(@PathVariable("id")  String number,
                                                 @Valid @RequestBody DepositWithdrawRequest depositWithdrawRequest,
                                                 BindingResult result) {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = bankAccountService.withdraw(id, depositWithdrawRequest.getAmount());
+        BankAccount account = bankAccountService.withdraw(number, depositWithdrawRequest.getAmount());
         return ResponseEntity.ok(account);
     }
 
     @GetMapping("{id}/transactions")
-    public ResponseEntity<List<Transaction>> getAccountTransactions(@PathVariable("id") Integer id) {
-        BankAccount account = bankAccountService.findAccountById(id);
-        List<Transaction> transactions = account.getTransactions();
+    public ResponseEntity<List<Transaction>> getAccountTransactions(@PathVariable("id")  String number) {
+        List<Transaction> transactions = bankAccountService.getAccountTransactions(number);
         return ResponseEntity.ok(transactions);
     }
 }

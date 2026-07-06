@@ -1,38 +1,38 @@
-//import dto.UserRequest;
-//import org.springframework.context.annotation.*;
-//import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-//import org.springframework.web.servlet.view.InternalResourceViewResolver;
-//import service.BankManager;
-//
-//import java.math.BigDecimal;
-//import java.util.List;
-//import java.util.Map;
-//
-//@Configuration
-//@ComponentScan(basePackages = {"controllers", "service"})
-//@PropertySource("classpath:application.properties")
-//public class Main{
-//
-//    public static void main( String[] args ) {
-//        AnnotationConfigApplicationContext  context = new AnnotationConfigApplicationContext(Main.class);
-//        BankManager bankManager = context.getBean(BankManager.class);
-//
-//        // Тестовые данные
-//        List<UserRequest> requests = List.of(
-//                new UserRequest(123, new BigDecimal("100.00"), "CARD",
-//                        Map.of("cardNumber", "4111111111111111", "merchant", "Amazon")),
-//                new UserRequest(123, new BigDecimal("200.00"), "BANK",
-//                        Map.of("bankName", "Chase", "accountNumber", "12345678")),
-//                new UserRequest(999, new BigDecimal("50.00"), "WALLET",  // Несуществующий аккаунт
-//                        Map.of("walletId", "wallet123")),
-//                new UserRequest(123, new BigDecimal("150.00"), "WALLET",
-//                        Map.of("walletId", "wallet456"))
-//        );
-//
-//        System.out.println("\n");
-//        // Обработка запросов
-//        bankManager.doWork(requests);
-//
-//        context.close();
-//    }
-//}
+import db.DBCreateTables;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import service.db.BankAccountService;
+
+import java.math.BigDecimal;
+
+@Configuration
+@ComponentScan(basePackages = {"service"})
+@PropertySource("classpath:application.properties")
+public class Main{
+
+    public static void main( String[] args ) {
+        DBCreateTables.initializeDatabase();
+
+        try (AnnotationConfigApplicationContext  context = new AnnotationConfigApplicationContext(Main.class)) {
+            BankAccountService bankAccountService = context.getBean(BankAccountService.class);
+            String accountNumber = "11111";
+            String additionalAccount = "33333";
+
+            System.out.println(bankAccountService.findAccountByNumber(accountNumber));
+            System.out.println(bankAccountService.findAccountByNumber(additionalAccount));
+
+            bankAccountService.withdraw(accountNumber, BigDecimal.valueOf(200.0));
+            bankAccountService.deposit(accountNumber, BigDecimal.valueOf(1000.0));
+            bankAccountService.withdraw(accountNumber, BigDecimal.valueOf(200.0));
+            bankAccountService.transfer(accountNumber, additionalAccount, BigDecimal.valueOf(500.0));
+
+            System.out.println(bankAccountService.findAccountByNumber(accountNumber));
+            System.out.println(bankAccountService.findAccountByNumber(additionalAccount));
+
+            System.out.println(bankAccountService.getAccountTransactions(accountNumber));
+            System.out.println(bankAccountService.getAccountTransactions(additionalAccount));
+        }
+    }
+}

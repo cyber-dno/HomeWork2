@@ -1,6 +1,7 @@
 package entity;
 
 import classifier.TransactionType;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,24 +10,23 @@ import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class Transaction {
     private String id;
-    private BigDecimal value;
+    private User source;
+    private User target;
+    private User user;
+    private BigDecimal amount;
     private TransactionType type;
     private String category;
-    private BankAccount bankAccount;
-    private LocalDateTime createdDate;
-    private String merchantName;
-    private String merchantCategoryCode;
-    private String cardNumber;
-    private String bankName;
-    private String digitalWalletId;
+    private LocalDateTime date;
 
-    public Transaction(String id, BigDecimal value, TransactionType type, String category, LocalDateTime createdDate) {
-        this.id = id;
-        this.value = value;
+    public Transaction(User source, User target, User user, BigDecimal amount, TransactionType type, String category) {
+        this.source = source;
+        this.target = target;
+        this.user = user;
+        this.amount = amount;
         this.type = type;
         this.category = category;
-        this.createdDate = createdDate;
     }
 }

@@ -13,5 +13,5 @@ public class Refund {
     private int id;
     private BigDecimal amount;
     private String description;
-    private int transactionId;
+    private Transaction transaction;
 }

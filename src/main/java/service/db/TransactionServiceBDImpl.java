@@ -1,6 +1,7 @@
-package service;
+package service.db;
 
 import classifier.TransactionType;
+import db.DBManager;
 import entity.BankAccount;
 import entity.Transaction;
 import entity.User;
@@ -13,14 +14,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-public class TransactionServiceImpl implements TransactionService {
+public class TransactionServiceBDImpl implements TransactionService {
+    private final DBManager dbManager = DBManager.getInstance();
 
     // Получение транзакций по счёту. Если счёта нет, то возвращается пустой список
     public Stream<Transaction> getTransactionsByAccount(BankAccount account) {
         if (account == null) {
             return Stream.empty();
         }
-        return account.getTransactions().stream();
+        return dbManager.getTransactionsByBankAccount(account).stream();
     }
 
     // Получение транзакций по счёту по указанным категориям. Получаем список транзакций и фильтруем их по типу
@@ -34,8 +36,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (user == null) {
             return Stream.empty();
         }
-        return user.getBankAccounts().stream()
-                .flatMap(account -> account.getTransactions().stream());
+        return dbManager.getTransactionsByUser(user).stream();
     }
 
     // Получение по клиенту по указанным категориям. Получаем список транзакций и фильтруем их по типу

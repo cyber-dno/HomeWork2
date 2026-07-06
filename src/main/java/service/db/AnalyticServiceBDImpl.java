@@ -1,14 +1,13 @@
-package service;
+package service.db;
 
 import annotation.LogExecutionTime;
+import classifier.TransactionType;
 import entity.BankAccount;
 import entity.Transaction;
 import entity.User;
-import classifier.TransactionType;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.java.Log;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,21 +17,21 @@ import java.util.stream.Collectors;
 
 @Service
 @Log
-public class AnalyticsServiceImpl implements AnalyticsService {
-    private final TransactionServiceImpl transactionService;
+public class AnalyticServiceBDImpl  implements AnalyticsService {
+    private final TransactionServiceBDImpl transactionService;
 
-    public AnalyticsServiceImpl(TransactionServiceImpl transactionService) {
+    public AnalyticServiceBDImpl(TransactionServiceBDImpl transactionService) {
         this.transactionService = transactionService;
     }
 
     @PostConstruct
     public void initBean() {
-        log.info("AnalyticsServiceImpl initialized");
+        log.info("AnalyticServiceBDImpl initialized");
     }
 
     @PreDestroy
     public void destroyBean() {
-        log.info("AnalyticsServiceImpl destroyed");
+        log.info("AnalyticServiceBDImpl destroyed");
     }
 
     // Получение месячных затрат по указанной категории
@@ -44,9 +43,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         // Фильтруем список транзакций по пользователю
         spendsByCategory = transactionService.getTransactionsByAccountAndType(bankAccount, TransactionType.PAYMENT)
                 .filter(transaction -> category.equals(transaction.getCategory()))
-                .filter(transaction -> transaction.getCreatedDate().isAfter(border))
+                .filter(transaction -> transaction.getDate().isAfter(border))
                 // Получаем общие затраты по интересующим нас транзакциям
-                .map(Transaction::getValue)
+                .map(Transaction::getAmount)
                 .reduce(spendsByCategory, BigDecimal::add);
 
         return spendsByCategory;
@@ -60,11 +59,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         // Фильтруем список транзакций по пользователю
         spendingByCategories = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT)
                 .filter(transaction -> categories.contains(transaction.getCategory()))
-                .filter(transaction -> transaction.getCreatedDate().isAfter(border))
+                .filter(transaction -> transaction.getDate().isAfter(border))
                 // Формируем словарь по затратам
                 .collect(Collectors.toMap(
                         Transaction::getCategory,
-                        Transaction::getValue,
+                        Transaction::getAmount,
                         BigDecimal::add
                 ));
 
@@ -78,7 +77,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         // Фильтруем список транзакций по пользователю
         transactionHistory = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT)
                 // Сортируем транзакции по убыванию
-                .sorted(Comparator.comparing(Transaction::getValue).reversed())
+                .sorted(Comparator.comparing(Transaction::getAmount).reversed())
                 // Формируем словарь по категориям
                 .collect(Collectors.groupingBy(
                         Transaction::getCategory,
@@ -95,7 +94,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         // Получаем транзакции по пользователю и сортируем их по дате
         lastTransactions = transactionService.getTransactionsByUser(user)
-                .sorted(Comparator.comparing(Transaction::getCreatedDate).reversed())
+                .sorted(Comparator.comparing(Transaction::getDate).reversed())
                 .limit(n)
                 .toList();
 
@@ -109,10 +108,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         PriorityQueue<Transaction> largestTransactions;
 
         largestTransactions = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT)
-                .sorted(Comparator.comparing(Transaction::getValue).reversed())
+                .sorted(Comparator.comparing(Transaction::getAmount).reversed())
                 .limit(n)
                 .collect(Collectors.toCollection(
-                        () -> new PriorityQueue<>(Comparator.comparing(Transaction::getValue).reversed())
+                        () -> new PriorityQueue<>(Comparator.comparing(Transaction::getAmount).reversed())
                 ));
 
         return largestTransactions;

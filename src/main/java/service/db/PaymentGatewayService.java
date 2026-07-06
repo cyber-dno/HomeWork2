@@ -1,4 +1,4 @@
-package service;
+package service.db;
 
 import org.springframework.stereotype.Service;
 

@@ -11,16 +11,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import service.PaymentGatewayService;
+import service.RefundService;
 import service.notification.NotificationService;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.util.List;
 
 /**
  * Сервис отвечает за управление счетами, включая создание, удаление и пополнение
  */
 @Service
-public class BankAccountService {
+public class BankAccountServiceBD {
     private final DBManager dbManager = DBManager.getInstance();
 
     private final PaymentGatewayService paymentGatewayService;
@@ -34,20 +37,20 @@ public class BankAccountService {
     private String recipientPhone;
 
     @Autowired
-    public BankAccountService(PaymentGatewayService paymentGatewayService, RefundService refundService,
-                              @Qualifier("emailNotificationService") NotificationService emailNotificationService,
-                              @Qualifier("smsNotificationService") NotificationService smsNotificationService) {
+    public BankAccountServiceBD(PaymentGatewayService paymentGatewayService, RefundService refundService,
+                                @Qualifier("emailNotificationService") NotificationService emailNotificationService,
+                                @Qualifier("smsNotificationService") NotificationService smsNotificationService) {
         this.paymentGatewayService = paymentGatewayService;
         this.refundService = refundService;
         this.emailNotificationService = emailNotificationService;
         this.smsNotificationService = smsNotificationService;
     }
 
-    public BankAccount findAccountByNumber(String number) {
-        return dbManager.getBankAccount(number);
+    public BankAccount findAccountByNumber(String number, Connection connection) {
+        return dbManager.getBankAccount(number, connection);
     }
 
-    public BankAccount addBankAccount(CreateAccountRequest createAccountRequest) {
+    public BankAccount addBankAccount(CreateAccountRequest createAccountRequest, Connection connection) {
         BankAccount account = new BankAccount(
                 "12345",
                 createAccountRequest.getInitialBalance(),
@@ -59,16 +62,16 @@ public class BankAccountService {
                 )
         );
 
-        dbManager.addBankAccount(account);
+        dbManager.addBankAccount(account, connection);
         return account;
     }
 
-    public List<Transaction> getAccountTransactions(String number) {
-        return dbManager.getTransactionsByBankAccount(findAccountByNumber(number));
+    public List<Transaction> getAccountTransactions(String number, Connection connection) {
+        return dbManager.getTransactionsByBankAccount(findAccountByNumber(number, connection), connection);
     }
 
-    public BankAccount withdraw(String number, BigDecimal amount) {
-        BankAccount account = findAccountByNumber(number);
+    public BankAccount withdraw(String number, BigDecimal amount, Connection connection) {
+        BankAccount account = findAccountByNumber(number, connection);
         User user = account.getUser();
 
         BigDecimal resultSum = account.getBalance().subtract(amount);
@@ -85,8 +88,8 @@ public class BankAccountService {
                 TransactionType.PAYMENT,
                 null
         );
-        dbManager.addTransaction(transaction);
-        dbManager.updateBalance(number, resultSum);
+        dbManager.addTransaction(transaction, connection);
+        dbManager.updateBalance(number, resultSum, connection);
         boolean paymentGatewayServiceStatus = paymentGatewayService.authorize("Платеж по карте", amount);
         if (!paymentGatewayServiceStatus) {
             System.out.println("Ошибка подключения к сервису оплаты. Попробуйте позже");
@@ -97,7 +100,7 @@ public class BankAccountService {
                     transaction
             );
             refundService.createRefund(refund);
-            dbManager.updateBalance(number, account.getBalance());
+            dbManager.updateBalance(number, account.getBalance(), connection);
         } else {
             smsNotificationService.sendNotification(recipientPhone, "Произошел платеж");
             emailNotificationService.sendNotification(recipientEmail, "Произошел платеж");
@@ -105,8 +108,8 @@ public class BankAccountService {
         return account;
     }
 
-    public BankAccount deposit(String number, BigDecimal amount) {
-        BankAccount account = findAccountByNumber(number);
+    public BankAccount deposit(String number, BigDecimal amount, Connection connection) {
+        BankAccount account = findAccountByNumber(number, connection);
         User user = account.getUser();
 
         BigDecimal resultSum = account.getBalance().add(amount);
@@ -119,8 +122,8 @@ public class BankAccountService {
                 TransactionType.DEPOSIT,
                 null
         );
-        dbManager.addTransaction(transaction);
-        dbManager.updateBalance(number, resultSum);
+        dbManager.addTransaction(transaction, connection);
+        dbManager.updateBalance(number, resultSum, connection);
         boolean paymentGatewayServiceStatus = paymentGatewayService.authorize("Пополнение карты", amount);
         if (!paymentGatewayServiceStatus) {
             System.out.println("Ошибка подключения к сервису пополнения. Попробуйте позже");
@@ -131,7 +134,7 @@ public class BankAccountService {
                     transaction
             );
             refundService.createRefund(refund);
-            dbManager.updateBalance(number, account.getBalance());
+            dbManager.updateBalance(number, account.getBalance(), connection);
         } else {
             smsNotificationService.sendNotification(recipientPhone, "Произошло пополнение средств");
             emailNotificationService.sendNotification(recipientEmail, "Произошло пополнение средств");
@@ -140,9 +143,9 @@ public class BankAccountService {
     }
 
     public void transfer(String fromAccountNumber, String toAccountNumber,
-                         BigDecimal amount) {
-        BankAccount fromAccount = findAccountByNumber(fromAccountNumber);
-        BankAccount toAccount = findAccountByNumber(toAccountNumber);
+                         BigDecimal amount, Connection connection) {
+        BankAccount fromAccount = findAccountByNumber(fromAccountNumber, connection);
+        BankAccount toAccount = findAccountByNumber(toAccountNumber, connection);
         User fromUser = fromAccount.getUser();
         User toUser = toAccount.getUser();
 
@@ -161,8 +164,8 @@ public class BankAccountService {
                 TransactionType.PAYMENT,
                 null
         );
-        dbManager.addTransaction(transactionPayment);
-        dbManager.updateBalance(fromAccountNumber, fromResultSum);
+        dbManager.addTransaction(transactionPayment, connection);
+        dbManager.updateBalance(fromAccountNumber, fromResultSum, connection);
 
         Transaction transactionDeposit = new Transaction(
                 fromUser,
@@ -172,8 +175,8 @@ public class BankAccountService {
                 TransactionType.DEPOSIT,
                 null
         );
-        dbManager.addTransaction(transactionDeposit);
-        dbManager.updateBalance(toAccountNumber, toResultSum);
+        dbManager.addTransaction(transactionDeposit, connection);
+        dbManager.updateBalance(toAccountNumber, toResultSum, connection);
 
         boolean paymentGatewayServiceStatus = paymentGatewayService.authorize("Перевод средств", amount);
         if (!paymentGatewayServiceStatus) {
@@ -185,8 +188,8 @@ public class BankAccountService {
                     transactionPayment
             );
             refundService.createRefund(refund);
-            dbManager.updateBalance(fromAccountNumber, fromAccount.getBalance());
-            dbManager.updateBalance(toAccountNumber, toAccount.getBalance());
+            dbManager.updateBalance(fromAccountNumber, fromAccount.getBalance(), connection);
+            dbManager.updateBalance(toAccountNumber, toAccount.getBalance(), connection);
         } else {
             smsNotificationService.sendNotification(recipientPhone, "Произошло пополнение средств");
             emailNotificationService.sendNotification(recipientEmail, "Произошло пополнение средств");

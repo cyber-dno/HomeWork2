@@ -12,7 +12,6 @@ import java.util.function.Function;
 
 public class DBManager {
     private static DBManager instance;
-    private static final DBConnectionManager CONNECTION_MANAGER = DBConnectionManager.getInstance();
 
     public static synchronized DBManager getInstance() {
         if (instance == null)
@@ -20,8 +19,7 @@ public class DBManager {
         return instance;
     }
 
-    public void addUser(User user) {
-        Connection connection = CONNECTION_MANAGER.get();
+    public void addUser(User user, Connection connection) {
         try (PreparedStatement preparedStatement = connection.prepareStatement(
                 "INSERT INTO banking.User (name, email, phone, id) VALUES (?, ?, ?, ?)"
         )) {
@@ -32,15 +30,12 @@ public class DBManager {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
     }
 
-    public List<User> getUsers() {
+    public List<User> getUsers(Connection connection) {
         List<User> users = new ArrayList<>();
 
-        Connection connection = CONNECTION_MANAGER.get();
         try (Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery(
                      "SELECT * FROM banking.User;"
@@ -50,15 +45,12 @@ public class DBManager {
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
 
         return users;
     }
 
-    public User getUser(String id) {
-        Connection connection = CONNECTION_MANAGER.get();
+    public User getUser(String id, Connection connection) {
         User user = null;
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(
@@ -73,15 +65,12 @@ public class DBManager {
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
 
         return user;
     }
 
-    public void deleteUser(User user) {
-        Connection connection = CONNECTION_MANAGER.get();
+    public void deleteUser(User user, Connection connection) {
         try (PreparedStatement preparedStatement = connection.prepareStatement(
                 "DELETE FROM banking.User WHERE id = ?"
         )) {
@@ -89,13 +78,10 @@ public class DBManager {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
     }
 
-    public void addBankAccount(BankAccount bankAccount) {
-        Connection connection = CONNECTION_MANAGER.get();
+    public void addBankAccount(BankAccount bankAccount, Connection connection) {
         try (PreparedStatement preparedStatement = connection.prepareStatement(
                 "INSERT INTO banking.BankAccount (user_id, number, balance) VALUES (?, ?, ?)"
         )) {
@@ -105,13 +91,10 @@ public class DBManager {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
     }
 
-    public BankAccount getBankAccount(String number) {
-        Connection connection = CONNECTION_MANAGER.get();
+    public BankAccount getBankAccount(String number, Connection connection) {
         BankAccount bankAccount = null;
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(
@@ -121,20 +104,17 @@ public class DBManager {
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    bankAccount = bankAccountBuild(resultSet);
+                    bankAccount = bankAccountBuild(resultSet, connection);
                 }
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
 
         return bankAccount;
     }
 
-    public void updateBalance(String number, BigDecimal balance) {
-        Connection connection = CONNECTION_MANAGER.get();
+    public void updateBalance(String number, BigDecimal balance, Connection connection) {
         try (PreparedStatement preparedStatement = connection.prepareStatement(
                 "UPDATE banking.BankAccount SET balance = ? WHERE number = ?"
         )) {
@@ -143,13 +123,10 @@ public class DBManager {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
     }
 
-    public void addTransaction(Transaction transaction) {
-        Connection connection = CONNECTION_MANAGER.get();
+    public void addTransaction(Transaction transaction, Connection connection) {
         try (PreparedStatement preparedStatement = connection.prepareStatement(
                 "INSERT INTO banking.Transaction (user_id, amount, type, source, target) VALUES (?, ?, ?, ?, ?)"
         )) {
@@ -161,35 +138,29 @@ public class DBManager {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
     }
 
-    public List<Transaction> getTransactions() {
+    public List<Transaction> getTransactions(Connection connection) {
         List<Transaction> transactions = new ArrayList<>();
 
-        Connection connection = CONNECTION_MANAGER.get();
         try (Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery(
                      "SELECT * FROM banking.Transaction;"
              )) {
             while (resultSet.next()) {
-                transactions.add(transactionBuild(resultSet));
+                transactions.add(transactionBuild(resultSet, connection));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
 
         return transactions;
     }
 
-    public List<Transaction> getTransactionsByBankAccount(BankAccount bankAccount) {
+    public List<Transaction> getTransactionsByBankAccount(BankAccount bankAccount, Connection connection) {
         List<Transaction> transactions = new ArrayList<>();
 
-        Connection connection = CONNECTION_MANAGER.get();
         try (PreparedStatement preparedStatement = connection.prepareStatement(
                 "SELECT * FROM banking.transaction " +
                         "WHERE user_id = ( " +
@@ -201,22 +172,19 @@ public class DBManager {
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
-                    transactions.add(transactionBuild(resultSet));
+                    transactions.add(transactionBuild(resultSet, connection));
                 }
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
 
         return transactions;
     }
 
-    public List<Transaction> getTransactionsByUser(User user) {
+    public List<Transaction> getTransactionsByUser(User user, Connection connection) {
         List<Transaction> transactions = new ArrayList<>();
 
-        Connection connection = CONNECTION_MANAGER.get();
         try (PreparedStatement preparedStatement = connection.prepareStatement(
                 "SELECT * FROM banking.transaction " +
                         "WHERE user_id = ? "
@@ -225,20 +193,17 @@ public class DBManager {
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
-                    transactions.add(transactionBuild(resultSet));
+                    transactions.add(transactionBuild(resultSet, connection));
                 }
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
 
         return transactions;
     }
 
-    public Transaction getTransaction(String id) {
-        Connection connection = CONNECTION_MANAGER.get();
+    public Transaction getTransaction(String id, Connection connection) {
         Transaction transaction = null;
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(
@@ -248,34 +213,32 @@ public class DBManager {
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    transaction = transactionBuild(resultSet);
+                    transaction = transactionBuild(resultSet, connection);
                 }
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            CONNECTION_MANAGER.disconnect(connection);
         }
 
         return transaction;
     }
 
-    private Transaction transactionBuild(ResultSet resultSet) throws SQLException {
+    private Transaction transactionBuild(ResultSet resultSet, Connection connection) throws SQLException {
         return new TransactionBuilder().reset()
                 .setId(String.valueOf(resultSet.getInt("id")))
-                .setUser(getUser(resultSet.getString("user_id")))
+                .setUser(getUser(resultSet.getString("user_id"), connection))
                 .setAmount(resultSet.getBigDecimal("amount"))
                 .setType(TransactionType.valueOf(resultSet.getString("type")))
                 .setDate(resultSet.getTimestamp("date").toLocalDateTime())
-                .setSource(getUser(resultSet.getString("source")))
-                .setTarget(getUser(resultSet.getString("target")))
+                .setSource(getUser(resultSet.getString("source"), connection))
+                .setTarget(getUser(resultSet.getString("target"), connection))
                 .getTransaction();
     }
 
-    private BankAccount bankAccountBuild(ResultSet resultSet) throws SQLException {
+    private BankAccount bankAccountBuild(ResultSet resultSet, Connection connection) throws SQLException {
         return new BankAccountBuilder().reset()
                 .setNumber(resultSet.getString("number"))
-                .setUser(getUser(resultSet.getString("user_id")))
+                .setUser(getUser(resultSet.getString("user_id"), connection))
                 .setBalance(resultSet.getBigDecimal("balance"))
                 .getBankAccount();
     }

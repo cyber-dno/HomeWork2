@@ -1,5 +1,6 @@
 package controllers;
 
+import db.DBConnectionManager;
 import dto.CreateAccountRequest;
 import dto.DepositWithdrawRequest;
 import dto.ErrorResponse;
@@ -11,8 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import service.db.BankAccountService;
+import service.db.BankAccountServiceBD;
 
+import java.sql.Connection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,9 +22,9 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/accounts")
 public class BankAccountController {
-    private final BankAccountService bankAccountService;
+    private final BankAccountServiceBD bankAccountService;
 
-    public BankAccountController(BankAccountService bankAccountService) {
+    public BankAccountController(BankAccountServiceBD bankAccountService) {
         this.bankAccountService = bankAccountService;
     }
 
@@ -44,13 +46,17 @@ public class BankAccountController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = bankAccountService.addBankAccount(createAccountRequest);
+        Connection connection = DBConnectionManager.getInstance().get();
+        BankAccount account = bankAccountService.addBankAccount(createAccountRequest, connection);
+        DBConnectionManager.getInstance().disconnect(connection);
         return ResponseEntity.ok(account);
     }
 
     @GetMapping("{id}")
     public ResponseEntity<?> getAccount(@PathVariable("id") String number) {
-        BankAccount account = bankAccountService.findAccountByNumber(number);
+        Connection connection = DBConnectionManager.getInstance().get();
+        BankAccount account = bankAccountService.findAccountByNumber(number, connection);
+        DBConnectionManager.getInstance().disconnect(connection);
         return ResponseEntity.ok(account);
     }
 
@@ -61,7 +67,9 @@ public class BankAccountController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = bankAccountService.deposit(number, depositWithdrawRequest.getAmount());
+        Connection connection = DBConnectionManager.getInstance().get();
+        BankAccount account = bankAccountService.deposit(number, depositWithdrawRequest.getAmount(), connection);
+        DBConnectionManager.getInstance().disconnect(connection);
         return ResponseEntity.ok(account);
     }
 
@@ -72,13 +80,17 @@ public class BankAccountController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = bankAccountService.withdraw(number, depositWithdrawRequest.getAmount());
+        Connection connection = DBConnectionManager.getInstance().get();
+        BankAccount account = bankAccountService.withdraw(number, depositWithdrawRequest.getAmount(), connection);
+        DBConnectionManager.getInstance().disconnect(connection);
         return ResponseEntity.ok(account);
     }
 
     @GetMapping("{id}/transactions")
     public ResponseEntity<List<Transaction>> getAccountTransactions(@PathVariable("id")  String number) {
-        List<Transaction> transactions = bankAccountService.getAccountTransactions(number);
+        Connection connection = DBConnectionManager.getInstance().get();
+        List<Transaction> transactions = bankAccountService.getAccountTransactions(number, connection);
+        DBConnectionManager.getInstance().disconnect(connection);
         return ResponseEntity.ok(transactions);
     }
 }

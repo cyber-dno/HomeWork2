@@ -1,5 +1,6 @@
 package controllers;
 
+import db.DBConnectionManager;
 import dto.TransferRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -9,15 +10,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import service.db.BankAccountService;
+import service.db.BankAccountServiceBD;
+
+import java.sql.Connection;
 
 @Validated
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {
-    private final BankAccountService bankAccountService;
+    private final BankAccountServiceBD bankAccountService;
 
-    public TransactionController(BankAccountService bankAccountService) {
+    public TransactionController(BankAccountServiceBD bankAccountService) {
         this.bankAccountService = bankAccountService;
     }
 
@@ -26,11 +29,14 @@ public class TransactionController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body("Invalid transfer request");
         }
+        Connection connection = DBConnectionManager.getInstance().get();
         bankAccountService.transfer(
                 request.getFromAccountNumber(),
                 request.getToAccountNumber(),
-                request.getAmount()
+                request.getAmount(),
+                connection
         );
+        DBConnectionManager.getInstance().disconnect(connection);
         return ResponseEntity.ok("Successfully transferred");
     }
 }

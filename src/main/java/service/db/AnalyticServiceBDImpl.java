@@ -11,6 +11,7 @@ import lombok.extern.java.Log;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,12 +37,12 @@ public class AnalyticServiceBDImpl  implements AnalyticsService {
 
     // Получение месячных затрат по указанной категории
     @LogExecutionTime
-    public BigDecimal getMonthlySpendingByCategory(BankAccount bankAccount, String category) {
+    public BigDecimal getMonthlySpendingByCategory(BankAccount bankAccount, String category, Connection connection) {
         BigDecimal spendsByCategory = BigDecimal.ZERO;
         LocalDateTime border = LocalDateTime.now().minusMonths(1L);
 
         // Фильтруем список транзакций по пользователю
-        spendsByCategory = transactionService.getTransactionsByAccountAndType(bankAccount, TransactionType.PAYMENT)
+        spendsByCategory = transactionService.getTransactionsByAccountAndType(bankAccount, TransactionType.PAYMENT, connection)
                 .filter(transaction -> category.equals(transaction.getCategory()))
                 .filter(transaction -> transaction.getDate().isAfter(border))
                 // Получаем общие затраты по интересующим нас транзакциям
@@ -52,12 +53,12 @@ public class AnalyticServiceBDImpl  implements AnalyticsService {
     }
 
     // Получение месячных затрат по указанным категориям
-    public Map<String, BigDecimal> getMonthlySpendingByCategories(User user, Set<String> categories) {
+    public Map<String, BigDecimal> getMonthlySpendingByCategories(User user, Set<String> categories, Connection connection) {
         Map<String, BigDecimal> spendingByCategories;
         LocalDateTime border = LocalDateTime.now().minusMonths(1L);
 
         // Фильтруем список транзакций по пользователю
-        spendingByCategories = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT)
+        spendingByCategories = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT, connection)
                 .filter(transaction -> categories.contains(transaction.getCategory()))
                 .filter(transaction -> transaction.getDate().isAfter(border))
                 // Формируем словарь по затратам
@@ -71,11 +72,11 @@ public class AnalyticServiceBDImpl  implements AnalyticsService {
     }
 
     // Получение истории транзакций по категориям. Транзакции в категории отсортированы по убыванию
-    public LinkedHashMap<String, List<Transaction>> getTransactionHistorySortedByAmount(User user) {
+    public LinkedHashMap<String, List<Transaction>> getTransactionHistorySortedByAmount(User user, Connection connection) {
         LinkedHashMap<String, List<Transaction>> transactionHistory;
 
         // Фильтруем список транзакций по пользователю
-        transactionHistory = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT)
+        transactionHistory = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT, connection)
                 // Сортируем транзакции по убыванию
                 .sorted(Comparator.comparing(Transaction::getAmount).reversed())
                 // Формируем словарь по категориям
@@ -89,11 +90,11 @@ public class AnalyticServiceBDImpl  implements AnalyticsService {
     }
 
     // Получение последних N транзакций по пользователю
-    public List<Transaction> getLastNTransactions(User user, int n) {
+    public List<Transaction> getLastNTransactions(User user, int n, Connection connection) {
         List<Transaction> lastTransactions;
 
         // Получаем транзакции по пользователю и сортируем их по дате
-        lastTransactions = transactionService.getTransactionsByUser(user)
+        lastTransactions = transactionService.getTransactionsByUser(user, connection)
                 .sorted(Comparator.comparing(Transaction::getDate).reversed())
                 .limit(n)
                 .toList();
@@ -103,11 +104,11 @@ public class AnalyticServiceBDImpl  implements AnalyticsService {
 
     @LogExecutionTime
     // Получение наибольших N транзакций по пользователю
-    public PriorityQueue<Transaction> getTopNLargestTransactions(User user, int n) {
+    public PriorityQueue<Transaction> getTopNLargestTransactions(User user, int n, Connection connection) {
         // Указываем компаратор, чтобы самой приоритетной была наименьшая транзакция
         PriorityQueue<Transaction> largestTransactions;
 
-        largestTransactions = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT)
+        largestTransactions = transactionService.getTransactionsByUserAndType(user, TransactionType.PAYMENT, connection)
                 .sorted(Comparator.comparing(Transaction::getAmount).reversed())
                 .limit(n)
                 .collect(Collectors.toCollection(

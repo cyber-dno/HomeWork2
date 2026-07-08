@@ -110,8 +110,9 @@ public class DBCreateTables {
                         "type VARCHAR(20) NOT NULL, " +
                         "date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                         "source VARCHAR(50), " +
-                        "target VARCHAR(50) NOT NULL, " +
+                        "target VARCHAR(50), " +
                         "FOREIGN KEY (user_id) REFERENCES banking.User(id) ON DELETE CASCADE, " +
+                        "FOREIGN KEY (source) REFERENCES banking.User(id) ON DELETE SET NULL, " +
                         "FOREIGN KEY (target) REFERENCES banking.User(id) ON DELETE SET NULL)"
         );
 

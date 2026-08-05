@@ -1,4 +1,4 @@
-package db;
+package db.jdbc;
 
 import classifier.TransactionType;
 import entity.*;

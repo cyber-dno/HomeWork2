@@ -1,7 +1,7 @@
 package service.db;
 
 import classifier.TransactionType;
-import db.DBManager;
+import db.jdbc.DBManager;
 import dto.CreateAccountRequest;
 import entity.BankAccount;
 import entity.Refund;

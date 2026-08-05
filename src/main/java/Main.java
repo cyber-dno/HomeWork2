@@ -1,38 +1,61 @@
-import db.DBCreateTables;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import service.db.BankAccountService;
+import db.hibernate.*;
+import entity.hibernate.User;
 
 import java.math.BigDecimal;
 
-@Configuration
-@ComponentScan(basePackages = {"service"})
-@PropertySource("classpath:application.properties")
-public class Main{
+public class Main {
 
-    public static void main( String[] args ) {
-        DBCreateTables.initializeDatabase();
+    public static void main(String[] args) {
+        try {
+            UserDAO userDAO = new UserDAO();
+            BankAccountDAO accountDAO = new BankAccountDAO();
+            TransactionDAO transactionDAO = new TransactionDAO();
 
-        try (AnnotationConfigApplicationContext  context = new AnnotationConfigApplicationContext(Main.class)) {
-            BankAccountService bankAccountService = context.getBean(BankAccountService.class);
-            String accountNumber = "11111";
-            String additionalAccount = "33333";
+            HibernateCreateData.initializeData();
 
-            System.out.println(bankAccountService.findAccountByNumber(accountNumber));
-            System.out.println(bankAccountService.findAccountByNumber(additionalAccount));
+            System.out.println("Пользователи:");
+            System.out.println(userDAO.findAll());
 
-            bankAccountService.withdraw(accountNumber, BigDecimal.valueOf(200.0));
-            bankAccountService.deposit(accountNumber, BigDecimal.valueOf(1000.0));
-            bankAccountService.withdraw(accountNumber, BigDecimal.valueOf(200.0));
-            bankAccountService.transfer(accountNumber, additionalAccount, BigDecimal.valueOf(500.0));
+            User updatedUser = userDAO.findById(3L);
+            updatedUser.setName("Тест2");
+            updatedUser.setEmail("test2@mail.ru");
+            userDAO.update(updatedUser);
 
-            System.out.println(bankAccountService.findAccountByNumber(accountNumber));
-            System.out.println(bankAccountService.findAccountByNumber(additionalAccount));
+            System.out.println("Пользователи:");
+            System.out.println(userDAO.findAll());
 
-            System.out.println(bankAccountService.getAccountTransactions(accountNumber));
-            System.out.println(bankAccountService.getAccountTransactions(additionalAccount));
+            userDAO.delete(3L);
+
+            System.out.println("Пользователи:");
+            System.out.println(userDAO.findAll());
+
+            System.out.println("Счета User1:");
+            System.out.println(accountDAO.findByUserId(1L));
+
+            System.out.println("Счёт 1:");
+            System.out.println(accountDAO.findById(1L));
+
+            accountDAO.deposit(1L, BigDecimal.valueOf(600));
+            System.out.println("Счёт 1:");
+            System.out.println(accountDAO.findById(1L));
+
+            accountDAO.withdraw(1L, BigDecimal.valueOf(200));
+            System.out.println("Счёт 1:");
+            System.out.println(accountDAO.findById(1L));
+
+            accountDAO.transfer(1L, 2L, BigDecimal.valueOf(300));
+            System.out.println("Счета User1:");
+            System.out.println(accountDAO.findByUserId(1L));
+
+            accountDAO.delete(2L);
+            System.out.println("Счета User1:");
+            System.out.println(accountDAO.findByUserId(1L));
+
+            System.out.println("История Счёта 1:");
+            System.out.println(transactionDAO.findByUserId(1L));
+
+        } finally {
+            HibernateUtil.closeSession();
         }
     }
 }

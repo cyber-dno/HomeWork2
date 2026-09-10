@@ -26,16 +26,19 @@ public class HibernateCreateData {
         User user1 = new User();
         user1.setName("Иван");
         user1.setEmail("ivan@mail.ru");
+        user1.setUsername("user");
         userRepository.save(user1);
 
         User user2 = new User();
         user2.setName("Алексей");
         user2.setEmail("alex@mail.ru");
+        user2.setUsername("admin");
         userRepository.save(user2);
 
         User user3 = new User();
         user3.setName("Тест");
         user3.setEmail("test@mail.ru");
+        user3.setUsername("test");
         userRepository.save(user3);
 
         BankAccount bankAccount1 = new BankAccount();

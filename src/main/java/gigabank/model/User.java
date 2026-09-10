@@ -1,6 +1,7 @@
 package gigabank.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import gigabank.classifier.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,6 +27,16 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<BankAccount> accounts = new ArrayList<>();
+
+    private String username;
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Token> tokens = new ArrayList<>();;
 
     @Override
     public String toString() {

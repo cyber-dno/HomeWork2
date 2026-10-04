@@ -11,7 +11,7 @@ import gigabank.repository.BankAccountRepository;
 import gigabank.repository.TransactionRepository;
 import gigabank.repository.UserRepository;
 import gigabank.service.notification.NotificationService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;

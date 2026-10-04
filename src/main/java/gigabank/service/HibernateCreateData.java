@@ -5,68 +5,62 @@ import gigabank.model.BankAccount;
 import gigabank.model.User;
 import gigabank.repository.BankAccountRepository;
 import gigabank.repository.UserRepository;
-import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class HibernateCreateData {
+
+    private static final int ACCOUNT_COUNT = 10;
+    private static final BigDecimal START_BALANCE = BigDecimal.valueOf(1_000_000);
+
     private final UserRepository userRepository;
     private final BankAccountRepository bankAccountRepository;
 
-    public HibernateCreateData(UserRepository userRepository, BankAccountRepository bankAccountRepository) {
-        this.userRepository = userRepository;
-        this.bankAccountRepository = bankAccountRepository;
-    }
-
     @Transactional
     public void initializeData() {
+        User user1 = ensureUser("user",  "Иван",     "ivan@mail.ru");
+        User user2 = ensureUser("admin", "Алексей",  "alex@mail.ru");
+        User user3 = ensureUser("test",  "Тест",     "test@mail.ru");
 
-        User user1 = new User();
-        user1.setName("Иван");
-        user1.setEmail("ivan@mail.ru");
-        user1.setUsername("user");
-        userRepository.save(user1);
+        ensureAccount("11111", BigDecimal.valueOf(100.00), user1);
+        ensureAccount("22222", BigDecimal.valueOf(200.00), user1);
+        ensureAccount("33333", BigDecimal.valueOf(300.00), user2);
+        ensureAccount("44444", BigDecimal.valueOf(400.00), user2);
 
-        User user2 = new User();
-        user2.setName("Алексей");
-        user2.setEmail("alex@mail.ru");
-        user2.setUsername("admin");
-        userRepository.save(user2);
+        for (int i = 0; i < ACCOUNT_COUNT; i++) {
+            ensureAccount("ACCOUNT_" + i, START_BALANCE, user3);
+        }
+    }
 
-        User user3 = new User();
-        user3.setName("Тест");
-        user3.setEmail("test@mail.ru");
-        user3.setUsername("test");
-        userRepository.save(user3);
+    private User ensureUser(String username, String name, String email) {
+        return userRepository.findByUsername(username)
+                .orElseGet(() -> {
+                    User u = new User();
+                    u.setUsername(username);
+                    u.setName(name);
+                    u.setEmail(email);
+                    return userRepository.save(u);
+                });
+    }
 
-        BankAccount bankAccount1 = new BankAccount();
-        bankAccount1.setBalance(BigDecimal.valueOf(100.00));
-        bankAccount1.setAccountNumber("11111");
-        bankAccount1.setCurrency(Currency.RUB);
-        bankAccount1.setUser(user1);
-        bankAccountRepository.save(bankAccount1);
-
-        BankAccount bankAccount2 = new BankAccount();
-        bankAccount2.setBalance(BigDecimal.valueOf(200.00));
-        bankAccount2.setAccountNumber("22222");
-        bankAccount2.setCurrency(Currency.RUB);
-        bankAccount2.setUser(user1);
-        bankAccountRepository.save(bankAccount2);
-
-        BankAccount bankAccount3 = new BankAccount();
-        bankAccount3.setBalance(BigDecimal.valueOf(300.00));
-        bankAccount3.setAccountNumber("33333");
-        bankAccount3.setCurrency(Currency.RUB);
-        bankAccount3.setUser(user2);
-        bankAccountRepository.save(bankAccount3);
-
-        BankAccount bankAccount4 = new BankAccount();
-        bankAccount4.setBalance(BigDecimal.valueOf(400.00));
-        bankAccount4.setAccountNumber("44444");
-        bankAccount4.setCurrency(Currency.RUB);
-        bankAccount4.setUser(user2);
-        bankAccountRepository.save(bankAccount4);
+    private BankAccount ensureAccount(String accountNumber,
+                                      BigDecimal balance,
+                                      User owner) {
+        return bankAccountRepository.findByAccountNumber(accountNumber)
+                .orElseGet(() -> {
+                    BankAccount a = new BankAccount();
+                    a.setAccountNumber(accountNumber);
+                    a.setBalance(balance);
+                    a.setCurrency(Currency.RUB);
+                    a.setUser(owner);
+                    return bankAccountRepository.save(a);
+                });
     }
 }

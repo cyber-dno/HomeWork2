@@ -5,9 +5,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.kafka.annotation.EnableKafka;
 
 @SpringBootApplication
+@EnableKafka
 public class Main {
     public static void main(String[] args) {
         SpringApplication.run(Main.class, args);
@@ -15,8 +16,6 @@ public class Main {
 
     @Bean
     public CommandLineRunner init(HibernateCreateData hibernateCreateData) {
-        return args -> {
-            hibernateCreateData.initializeData();
-        };
+        return args -> hibernateCreateData.initializeData();
     }
 }

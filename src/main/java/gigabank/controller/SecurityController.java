@@ -35,6 +35,16 @@ public class SecurityController {
         return "Basic Auth";
     }
 
+    @GetMapping("/basic/user/hello")
+    public String basicUserHello()  {
+        return "Basic User Auth";
+    }
+
+    @GetMapping("/basic/admin/hello")
+    public String basicAdminHello() {
+        return "Basic Admin Auth";
+    }
+
     @GetMapping("/form/hello")
     public String formHello() {
         return "Form Login";

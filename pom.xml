@@ -113,6 +113,25 @@
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>org.jsonschema2pojo</groupId>
+        <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+        <version>1.2.1</version>
+        <configuration>
+          <sourceDirectory>${project.basedir}/src/main/resources/schema</sourceDirectory>
+          <targetPackage>gigabank.model</targetPackage>
+          <generateBuilders>true</generateBuilders>
+          <outputDirectory>${project.basedir}/src/main/java</outputDirectory>
+          <includeConstructors>true</includeConstructors>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <executions>

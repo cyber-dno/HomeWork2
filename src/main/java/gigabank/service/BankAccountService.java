@@ -2,6 +2,7 @@ package gigabank.service;
 
 import gigabank.classifier.Currency;
 import gigabank.dto.CreateAccountRequest;
+import gigabank.exception.AccountNoFundsException;
 import gigabank.exception.AccountNotFoundException;
 import gigabank.model.BankAccount;
 import gigabank.model.Refund;
@@ -108,8 +109,7 @@ public class BankAccountService {
 
         BigDecimal resultSum = account.getBalance().subtract(amount);
         if (resultSum.compareTo(BigDecimal.ZERO) < 0) {
-            System.out.println("На счету недостаточно средств: " + account.getBalance());
-            return null;
+            throw new AccountNoFundsException(number);
         }
 
         Transaction transaction = new Transaction();
@@ -178,11 +178,16 @@ public class BankAccountService {
         BankAccount fromAccount = findAccountByNumber(fromAccountNumber);
         BankAccount toAccount = findAccountByNumber(toAccountNumber);
 
+        if (fromAccount == null) {
+            throw new AccountNotFoundException(fromAccountNumber);
+        } else if (toAccount == null) {
+            throw new AccountNotFoundException(toAccountNumber);
+        }
+
         BigDecimal fromResultSum = fromAccount.getBalance().subtract(amount);
         BigDecimal toResultSum = toAccount.getBalance().add(amount);
         if (fromResultSum.compareTo(BigDecimal.ZERO) < 0) {
-            System.out.println("На счету недостаточно средств для перевода: " + fromAccount.getBalance());
-            return;
+            throw new AccountNoFundsException(fromAccountNumber);
         }
 
         Transaction transactionPayment = new Transaction();

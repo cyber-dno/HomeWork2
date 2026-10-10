@@ -39,7 +39,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .securityMatcher("/auth/basic/**")
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().authenticated())
+                        .requestMatchers("/auth/basic/hello").authenticated()
+                        .requestMatchers("/auth/basic/user/**").hasRole("USER")
+                        .requestMatchers("/auth/basic/admin/**").hasRole("ADMIN")
+                        .anyRequest().denyAll())
                 .httpBasic(Customizer.withDefaults());
         return http.build();
     }

@@ -1,0 +1,30 @@
+{
+  "$schema": "<http://json-schema.org/draft-07/schema#>",
+  "title": "UserTest",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "User identifier"
+    },
+    "username": {
+      "type": "string",
+      "description": "User login name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": ["id", "username", "email"]
+}

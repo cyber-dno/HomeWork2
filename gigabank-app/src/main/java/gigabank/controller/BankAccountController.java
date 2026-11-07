@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import gigabank.service.BankAccountService;
+import gigabank.service.BankService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,10 +20,10 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/accounts")
 public class BankAccountController {
-    private final BankAccountService bankAccountService;
+    private final BankService bankService;
 
-    public BankAccountController(BankAccountService bankAccountService) {
-        this.bankAccountService = bankAccountService;
+    public BankAccountController(BankService bankService) {
+        this.bankService = bankService;
     }
 
     private static ErrorResponse getErrors(BindingResult result) {
@@ -42,12 +42,12 @@ public class BankAccountController {
     public ResponseEntity<?> getAccounts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "2") int size) {
-        return ResponseEntity.ok(bankAccountService.getAccounts(page, size));
+        return ResponseEntity.ok(bankService.getAccounts(page, size));
     }
 
     @DeleteMapping("{id}")
     public ResponseEntity<?> closeAccount(@PathVariable String id) {
-        return ResponseEntity.ok(bankAccountService.closeAccount(id));
+        return ResponseEntity.ok(bankService.closeAccount(id));
     }
 
     @PostMapping("")
@@ -56,13 +56,13 @@ public class BankAccountController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = bankAccountService.addBankAccount(createAccountRequest);
+        BankAccount account = bankService.addBankAccount(createAccountRequest);
         return ResponseEntity.ok(account);
     }
 
     @GetMapping("{id}")
     public ResponseEntity<?> getAccount(@PathVariable("id") String number) {
-        BankAccount account = bankAccountService.findAccountByNumber(number);
+        BankAccount account = bankService.findAccountByNumber(number);
         return ResponseEntity.ok(account);
     }
 
@@ -73,7 +73,7 @@ public class BankAccountController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = bankAccountService.deposit(number, depositWithdrawRequest.getAmount());
+        BankAccount account = bankService.deposit(number, depositWithdrawRequest.getAmount());
         return ResponseEntity.ok(account);
     }
 
@@ -84,13 +84,13 @@ public class BankAccountController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body(BankAccountController.getErrors(result));
         }
-        BankAccount account = bankAccountService.withdraw(number, depositWithdrawRequest.getAmount());
+        BankAccount account = bankService.withdraw(number, depositWithdrawRequest.getAmount());
         return ResponseEntity.ok(account);
     }
 
     @GetMapping("{id}/transactions")
     public ResponseEntity<List<Transaction>> getAccountTransactions(@PathVariable("id")  String number) {
-        List<Transaction> transactions = bankAccountService.getAccountTransactions(number);
+        List<Transaction> transactions = bankService.getAccountTransactions(number);
         return ResponseEntity.ok(transactions);
     }
 }

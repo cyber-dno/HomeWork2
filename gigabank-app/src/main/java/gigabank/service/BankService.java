@@ -3,18 +3,16 @@ package gigabank.service;
 import gigabank.classifier.Currency;
 import gigabank.dto.CreateAccountRequest;
 import gigabank.exception.AccountNoFundsException;
-import gigabank.exception.AccountNotFoundException;
 import gigabank.model.*;
-import gigabank.repository.BankAccountRepository;
 import gigabank.repository.OutboxMessageRepository;
-import gigabank.repository.TransactionRepository;
-import gigabank.repository.UserRepository;
+import gigabank.service.entity.account.AccountService;
+import gigabank.service.entity.transaction.TransactionService;
+import gigabank.service.entity.user.UserService;
 import gigabank.service.notification.NotificationService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -30,56 +28,49 @@ import java.util.UUID;
  * Сервис отвечает за управление счетами, включая создание, удаление и пополнение
  */
 @Service
-public class BankAccountService {
+public class BankService {
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
     private final PaymentGatewayService paymentGatewayService;
     private final RefundService refundService;
     private final NotificationService emailNotificationService;
     private final NotificationService smsNotificationService;
-    private final BankAccountRepository bankAccountRepository;
-    private final TransactionRepository transactionRepository;
-    private final UserRepository userRepository;
     private final OutboxMessageRepository outboxMessageRepository;
 
+    private final UserService userService;
+    private final AccountService accountService;
+    private final TransactionService transactionService;
+
     @Autowired
-    public BankAccountService(PaymentGatewayService paymentGatewayService,
-                              RefundService refundService,
-                              @Qualifier("emailNotificationService") NotificationService emailNotificationService,
-                              @Qualifier("smsNotificationService") NotificationService smsNotificationService,
-                              BankAccountRepository bankAccountRepository,
-                              TransactionRepository transactionRepository,
-                              UserRepository userRepository, OutboxMessageRepository outboxMessageRepository) {
+    public BankService(PaymentGatewayService paymentGatewayService,
+                       RefundService refundService,
+                       @Qualifier("emailNotificationService") NotificationService emailNotificationService,
+                       @Qualifier("smsNotificationService") NotificationService smsNotificationService,
+                       OutboxMessageRepository outboxMessageRepository,
+                       UserService userService,
+                       AccountService accountService,
+                       TransactionService transactionService) {
         this.paymentGatewayService = paymentGatewayService;
         this.refundService = refundService;
         this.emailNotificationService = emailNotificationService;
         this.smsNotificationService = smsNotificationService;
-        this.bankAccountRepository = bankAccountRepository;
-        this.transactionRepository = transactionRepository;
-        this.userRepository = userRepository;
         this.outboxMessageRepository = outboxMessageRepository;
+        this.userService = userService;
+        this.accountService = accountService;
+        this.transactionService = transactionService;
     }
 
     public Page<BankAccount> getAccounts(int page, int size) {
-        return bankAccountRepository.findAll(PageRequest.of(page, size));
+        return accountService.getAccounts(page, size);
     }
 
     public boolean closeAccount(String id) {
-        BankAccount account = bankAccountRepository.getBankAccountById(Long.valueOf(id));
-        if (account == null) {
-            throw new AccountNotFoundException(Long.valueOf(id));
-        }
-
-        bankAccountRepository.delete(account);
+        accountService.closeAccount(Long.parseLong(id));
         return true;
     }
 
     public BankAccount findAccountByNumber(String number) {
-        BankAccount account = bankAccountRepository.getBankAccountByAccountNumber(number);
-        if (account == null) {
-            throw new AccountNotFoundException(number);
-        }
-        return account;
+        return accountService.findAccountByNumber(number);
     }
 
     public BankAccount addBankAccount(CreateAccountRequest createAccountRequest) {
@@ -88,31 +79,21 @@ public class BankAccountService {
         account.setAccountNumber(String.valueOf(UUID.randomUUID()));
         account.setCurrency(Currency.RUB);
 
-        List<User> user = userRepository.getUserByEmail_AndName(
+        User user = userService.findOrCreate(
                 createAccountRequest.getOwnerEmail(),
                 createAccountRequest.getOwnerName()
         );
-        if (user.isEmpty()) {
-            User newUser = new User();
-            newUser.setName(createAccountRequest.getOwnerName());
-            newUser.setEmail(createAccountRequest.getOwnerEmail());
-            userRepository.save(newUser);
-
-            user.add(newUser);
-        }
-        account.setUser(user.get(0));
-
-        bankAccountRepository.save(account);
-        return account;
+        account.setUser(user);
+        return accountService.createAccount(account);
     }
 
     public List<Transaction> getAccountTransactions(String number) {
-        return transactionRepository.getTransactionsByAccount_AccountNumber(number);
+        return transactionService.getAccountTransactions(number);
     }
 
     @Transactional
     public BankAccount withdraw(String number, BigDecimal amount) {
-        BankAccount account = findAccountByNumber(number);
+        BankAccount account = accountService.findAccountByNumber(number);
 
         BigDecimal resultSum = account.getBalance().subtract(amount);
         if (resultSum.compareTo(BigDecimal.ZERO) < 0) {
@@ -123,10 +104,10 @@ public class BankAccountService {
         transaction.setAccount(account);
         transaction.setAmount(amount);
         transaction.setDescription("Платеж по карте");
-        transactionRepository.save(transaction);
+        transactionService.createTransaction(transaction);
 
         account.setBalance(resultSum);
-        bankAccountRepository.save(account);
+        accountService.updateAccount(account);
 
         boolean paymentGatewayServiceStatus = paymentGatewayService.authorize("Платеж по карте", amount);
         if (!paymentGatewayServiceStatus) {
@@ -139,7 +120,7 @@ public class BankAccountService {
             );
             refundService.createRefund(refund);
             account.setBalance(account.getBalance());
-            bankAccountRepository.save(account);
+            accountService.updateAccount(account);
         } else {
             emailNotificationService.sendNotification(account.getUser().getEmail(), "Произошел платеж");
         }
@@ -148,7 +129,7 @@ public class BankAccountService {
 
     @Transactional
     public BankAccount deposit(String number, BigDecimal amount) {
-        BankAccount account = findAccountByNumber(number);
+        BankAccount account = accountService.findAccountByNumber(number);
 
         BigDecimal resultSum = account.getBalance().add(amount);
 
@@ -156,10 +137,10 @@ public class BankAccountService {
         transaction.setAccount(account);
         transaction.setAmount(amount);
         transaction.setDescription("Пополнение карты");
-        transactionRepository.save(transaction);
+        transactionService.createTransaction(transaction);
 
         account.setBalance(resultSum);
-        bankAccountRepository.save(account);
+        accountService.updateAccount(account);
 
         boolean paymentGatewayServiceStatus = paymentGatewayService.authorize("Пополнение карты", amount);
         if (!paymentGatewayServiceStatus) {
@@ -172,7 +153,7 @@ public class BankAccountService {
             );
             refundService.createRefund(refund);
             account.setBalance(account.getBalance());
-            bankAccountRepository.save(account);
+            accountService.updateAccount(account);
         } else {
             emailNotificationService.sendNotification(account.getUser().getEmail(), "Произошло пополнение средств");
         }
@@ -182,14 +163,8 @@ public class BankAccountService {
     @Transactional
     public void transfer(String fromAccountNumber, String toAccountNumber,
                          BigDecimal amount) {
-        BankAccount fromAccount = findAccountByNumber(fromAccountNumber);
-        BankAccount toAccount = findAccountByNumber(toAccountNumber);
-
-        if (fromAccount == null) {
-            throw new AccountNotFoundException(fromAccountNumber);
-        } else if (toAccount == null) {
-            throw new AccountNotFoundException(toAccountNumber);
-        }
+        BankAccount fromAccount = accountService.findAccountByNumber(fromAccountNumber);
+        BankAccount toAccount = accountService.findAccountByNumber(toAccountNumber);
 
         BigDecimal fromResultSum = fromAccount.getBalance().subtract(amount);
         BigDecimal toResultSum = toAccount.getBalance().add(amount);
@@ -198,19 +173,19 @@ public class BankAccountService {
         transactionPayment.setAccount(fromAccount);
         transactionPayment.setAmount(amount);
         transactionPayment.setDescription("Перевод средств");
-        transactionRepository.save(transactionPayment);
+        transactionService.createTransaction(transactionPayment);
 
         fromAccount.setBalance(fromResultSum);
-        bankAccountRepository.save(fromAccount);
+        accountService.updateAccount(fromAccount);
 
         Transaction transactionDeposit = new Transaction();
         transactionDeposit.setAccount(toAccount);
         transactionDeposit.setAmount(amount);
         transactionDeposit.setDescription("Пополнение карты");
-        transactionRepository.save(transactionDeposit);
+        transactionService.createTransaction(transactionDeposit);
 
         toAccount.setBalance(toResultSum);
-        bankAccountRepository.save(toAccount);
+        accountService.updateAccount(toAccount);
 
         if (fromResultSum.compareTo(BigDecimal.ZERO) < 0) {
             throw new AccountNoFundsException(fromAccountNumber);
@@ -227,9 +202,9 @@ public class BankAccountService {
             );
             refundService.createRefund(refund);
             fromAccount.setBalance(fromAccount.getBalance());
-            bankAccountRepository.save(fromAccount);
+            accountService.updateAccount(fromAccount);
             toAccount.setBalance(toAccount.getBalance());
-            bankAccountRepository.save(toAccount);
+            accountService.updateAccount(toAccount);
         } else {
             emailNotificationService.sendNotification(toAccount.getUser().getEmail(), "Произошло пополнение средств");
 
@@ -269,6 +244,4 @@ public class BankAccountService {
                     "Failed to serialize payload for transaction " + transaction.getId(), e);
         }
     }
-
-
 }

@@ -40,7 +40,7 @@ public class HibernateCreateData {
     }
 
     private User ensureUser(String username, String name, String email) {
-        return userRepository.findByUsername(username)
+        return userRepository.getUserByUsername(username)
                 .orElseGet(() -> {
                     User u = new User();
                     u.setUsername(username);

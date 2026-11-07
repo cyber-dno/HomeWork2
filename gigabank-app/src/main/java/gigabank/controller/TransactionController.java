@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import gigabank.service.BankAccountService;
+import gigabank.service.BankService;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,12 +17,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
-    private final BankAccountService bankAccountService;
+    private final BankService bankService;
     private final TransactionProducer transactionProducer;
     private final MetricsService metricsService;
 
-    public TransactionController(BankAccountService bankAccountService, TransactionProducer transactionProducer, MetricsService metricsService) {
-        this.bankAccountService = bankAccountService;
+    public TransactionController(BankService bankService, TransactionProducer transactionProducer, MetricsService metricsService) {
+        this.bankService = bankService;
         this.transactionProducer = transactionProducer;
         this.metricsService = metricsService;
     }
@@ -32,7 +32,7 @@ public class TransactionController {
         if (result.hasErrors()) {
             return ResponseEntity.badRequest().body("Invalid transfer request");
         }
-        bankAccountService.transfer(
+        bankService.transfer(
                 request.getFromAccountNumber(),
                 request.getToAccountNumber(),
                 request.getAmount()

@@ -17,6 +17,20 @@ services:
     networks:
       - gigabank-net
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: gigabank-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - gigabank-net
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
@@ -85,10 +99,14 @@ services:
       JWT_SECRET: ${JWT_SECRET:-test-secret-key-for-token-generation}
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - gigabank-net

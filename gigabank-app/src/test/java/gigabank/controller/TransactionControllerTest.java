@@ -4,7 +4,7 @@ import gigabank.exception.AccountNoFundsException;
 import gigabank.repository.BankAccountRepository;
 import gigabank.repository.OutboxMessageRepository;
 import gigabank.repository.TransactionRepository;
-import gigabank.service.BankAccountService;
+import gigabank.service.BankService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +22,7 @@ public class TransactionControllerTest {
     private static final String TO   = "22222";
 
     @Autowired
-    private BankAccountService bankAccountService;
+    private BankService bankService;
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -47,7 +47,7 @@ public class TransactionControllerTest {
 
         assertEquals(0, outboxMessageRepository.countOutboxMessagesByProcessed(false));
 
-        assertThrows(AccountNoFundsException.class, () -> bankAccountService.transfer(FROM, TO, sum));
+        assertThrows(AccountNoFundsException.class, () -> bankService.transfer(FROM, TO, sum));
         assertEquals(0, outboxMessageRepository.countOutboxMessagesByProcessed(false));
 
         BigDecimal fromAfter = balanceOf(FROM);
@@ -66,7 +66,7 @@ public class TransactionControllerTest {
 
         assertEquals(0, outboxMessageRepository.countOutboxMessagesByProcessed(false));
 
-        bankAccountService.transfer(FROM, TO, sum);
+        bankService.transfer(FROM, TO, sum);
 
         assertEquals(2, outboxMessageRepository.countOutboxMessagesByProcessed(false));
 

@@ -1,0 +1,27 @@
+spring:
+  security:
+    user:
+      name: admin
+      password: admin123
+  application:
+    name: account-service
+  datasource:
+    url: jdbc:h2:mem:accountsdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
